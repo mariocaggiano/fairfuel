@@ -1,0 +1,22 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: fairfuel-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    disk:
+      name: fairfuel-data
+      mountPath: /app/backend/data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: SCHEDULER_HOUR
+        value: "9"
+      - key: SCHEDULER_MINUTE
+        value: "15"
+      - key: CORS_ORIGINS
+        value: "https://fairfuel.vercel.app,http://localhost:3000"
