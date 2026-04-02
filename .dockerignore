@@ -1,0 +1,8 @@
+__pycache__
+*.pyc
+*.pyo
+backend/data/*.db
+backend/data/*.csv
+.git
+.env
+*.md
