@@ -57,6 +57,9 @@ def _detect_delimiter(text: str) -> str:
 
 
 def _read_csv(text: str) -> pd.DataFrame:
+    # MIMIT CSVs begin with a metadata line "Estrazione del YYYY-MM-DD" — strip it
+    if text.lstrip().startswith("Estrazione"):
+        text = text.split("\n", 1)[1]
     sep = _detect_delimiter(text)
     logger.info(f"Detected delimiter: {sep!r}  first line: {text.split(chr(10),1)[0][:200]!r}")
     return pd.read_csv(
