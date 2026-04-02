@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FairFuel — Prezzi Carburanti Italia</title>
+  <meta name="description" content="Trova il distributore di carburante più economico vicino a te. Dati aggiornati dal MIMIT ogni giorno." />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{--primary:#16a34a;--primary-dark:#15803d;--primary-light:#dcfce7;--accent:#2563eb;--bg:#f8fafc;--card:#ffffff;--text:#0f172a;--text-light:#64748b;--border:#e2e8f0;--danger:#dc2626;--warning:#d97706;--radius:10px;--shadow:0 1px 3px rgba(0,0,0,.1);--shadow-lg:0 10px 15px -3px rgba(0,0,0,.1)}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
+    .header{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);color:#fff;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-lg);position:relative;z-index:900}
+    .logo{display:flex;align-items:center;gap:10px}
+    .logo svg{width:28px;height:28px}
+    .logo h1{font-size:1.3rem;font-weight:700;letter-spacing:-.5px}
+    .header-right{display:flex;align-items:center;gap:10px}
+    #updateBadge{font-size:.78rem;opacity:.85;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+    .btn-icon{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:500;transition:background .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .btn-icon:hover{background:rgba(255,255,255,.32)}
+    .btn-icon:disabled{opacity:.5;cursor:wait}
+    .layout{display:grid;grid-template-columns:370px 1fr;height:calc(100dvh - 56px)}
+    .sidebar{background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+    .filters{padding:14px 16px;border-bottom:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+    .filters-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-light);margin-bottom:10px}
+    .geo-box{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius);padding:10px 12px;margin-bottom:10px}
+    .geo-box label{font-size:.75rem;font-weight:500;color:#15803d;display:block;margin-bottom:6px}
+    .geo-row{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px}
+    .f-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+    .fg{display:flex;flex-direction:column;gap:3px}
+    .fg label{font-size:.76rem;font-weight:500;color:var(--text-light)}
+    .fg input,.fg select{padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;background:var(--bg);color:var(--text);transition:border-color .15s}
+    .fg input:focus,.fg select:focus{outline:none;border-color:var(--primary)}
+    .radius-row{display:flex;align-items:center;gap:8px}
+    .radius-row input[type=range]{flex:1;accent-color:var(--primary)}
+    .radius-val{font-size:.82rem;font-weight:600;color:var(--primary);width:40px}
+    .btn-gps{background:var(--primary);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:.85rem;transition:background .2s;display:flex;align-items:center;gap:3px}
+    .btn-gps:hover{background:var(--primary-dark)}
+    .btn-search{width:100%;padding:9px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .2s;margin-top:2px}
+    .btn-search:hover{background:var(--primary-dark)}
+    .btn-search:disabled{opacity:.6;cursor:wait}
+    .results-bar{padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:.8rem;color:var(--text-light);font-weight:500;flex-shrink:0}
+    .results-list{flex:1;overflow-y:auto}
+    .card{padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+    .card:hover{background:#f8fafc}
+    .card.active{background:#f0fdf4;border-left:3px solid var(--primary);padding-left:13px}
+    .card-top{display:flex;justify-content:space-between;align-items:baseline}
+    .card-brand{font-weight:600;font-size:.95rem}
+    .card-price{font-weight:700;font-size:1.1rem;color:var(--primary)}
+    .card-price.high{color:var(--warning)}
+    .card-price.highest{color:var(--danger)}
+    .card-addr{font-size:.78rem;color:var(--text-light);margin-top:2px;line-height:1.5}
+    .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+    .tag{padding:2px 8px;border-radius:100px;font-size:.7rem;font-weight:500}
+    .tag-fuel{background:#dbeafe;color:#1e40af}
+    .tag-self{background:#dcfce7;color:#166534}
+    .tag-serv{background:#fef3c7;color:#92400e}
+    .tag-km{background:#f1f5f9;color:#475569}
+    .tag-cheap{background:#dcfce7;color:#166534;font-weight:700}
+    .btn-nav{margin-top:7px;padding:5px 11px;background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:6px;font-size:.78rem;font-weight:500;cursor:pointer;transition:all .15s}
+    .btn-nav:hover{background:var(--accent);color:#fff}
+    .state-box{padding:40px 20px;text-align:center;color:var(--text-light)}
+    .state-box .icon{font-size:2.5rem;margin-bottom:10px}
+    .state-box p{font-size:.88rem}
+    #map{width:100%;height:100%}
+    .overlay{position:fixed;inset:0;background:rgba(255,255,255,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:9999}
+    .overlay.hidden{display:none}
+    .spinner{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .75s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .overlay-text{color:var(--text-light);font-size:.9rem}
+    @media(max-width:720px){.layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}.sidebar{max-height:55dvh}#map{min-height:45dvh}#updateBadge{display:none}}
+  </style>
+</head>
+<body>
+<header class="header">
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="rgba(255,255,255,0.15)"/>
+      <path d="M10 24V12a2 2 0 012-2h8a2 2 0 012 2v12" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <path d="M7 24h18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <path d="M13 10V8a1 1 0 011-1h4a1 1 0 011 1v2" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="22" cy="13" r="2.5" stroke="white" stroke-width="1.5"/>
+      <path d="M22 15.5V19" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      <rect x="13" y="14" width="6" height="4" rx="1" fill="white" opacity=".6"/>
+    </svg>
+    <h1>FairFuel</h1>
+  </div>
+  <div class="header-right">
+    <span id="updateBadge">Caricamento…</span>
+    <button class="btn-icon" id="btnRefresh">⟳ Aggiorna</button>
+  </div>
+</header>
+<div class="overlay" id="overlay"><div class="spinner"></div><div class="overlay-text" id="overlayText">Caricamento dati…</div></div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="filters">
+      <div class="filters-title">Filtra i distributori</div>
+      <div class="geo-box">
+        <label>&#8982; Ricerca per posizione</label>
+        <div class="geo-row">
+          <input id="iLat" type="text" placeholder="Latitudine" />
+          <input id="iLon" type="text" placeholder="Longitudine" />
+          <button class="btn-gps" id="btnGps" title="Usa la mia posizione">📍</button>
+        </div>
+        <div class="radius-row">
+          <span style="font-size:.75rem;color:#15803d;white-space:nowrap;">Raggio:</span>
+          <input type="range" id="iRadius" min="1" max="50" value="10" oninput="document.getElementById('rVal').textContent=this.value+' km'">
+          <span class="radius-val" id="rVal">10 km</span>
+        </div>
+      </div>
+      <div class="f-row">
+        <div class="fg"><label>Comune</label><input id="iComune" list="dlComune" placeholder="es. Roma" /><datalist id="dlComune"></datalist></div>
+        <div class="fg"><label>Provincia</label><select id="sProvincia"><option value="">Tutte</option></select></div>
+      </div>
+      <div class="f-row">
+        <div class="fg"><label>Carburante</label><select id="sCarburante"><option value="">Tutti</option></select></div>
+        <div class="fg"><label>Erogazione</label><select id="sServizio"><option value="">Tutte</option><option value="1">Self-Service</option><option value="0">Servito</option></select></div>
+      </div>
+      <div class="fg" style="margin-bottom:10px"><label>Brand / Bandiera</label><select id="sBrand"><option value="">Tutti</option></select></div>
+      <button class="btn-search" id="btnSearch">🔍 Cerca distributori</button>
+    </div>
+    <div class="results-bar" id="resultsBar">Imposta i filtri e premi Cerca</div>
+    <div class="results-list" id="resultsList">
+      <div class="state-box"><div class="icon">⛽</div><p>Seleziona i filtri e premi <strong>Cerca</strong> per trovare i distributori più economici.</p></div>
+    </div>
+  </aside>
+  <div id="map"></div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+(function(){
+"use strict";
+const API_BASE=(typeof __API_BASE__!=="undefined"?__API_BASE__:window.FAIRFUEL_API_BASE||(window.location.hostname==="localhost"?"http://localhost:8000":""))+"/api";
+let map,cluster,userMarker,results=[];
+function initMap(){map=L.map("map",{zoomControl:true}).setView([42.5,12.5],6);L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:'© <a href="https://osm.org/copyright">OpenStreetMap</a>',maxZoom:19}).addTo(map);cluster=L.markerClusterGroup({maxClusterRadius:55,showCoverageOnHover:false});map.addLayer(cluster);}
+async function apiFetch(path,params={}){const url=new URL(API_BASE+path);Object.entries(params).forEach(([k,v])=>{if(v!==null&&v!==undefined&&v!=="")url.searchParams.append(k,v);});const r=await fetch(url);if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json();}
+async function boot(){showOverlay("Connessione al server FairFuel…");try{const stats=await apiFetch("/stats");if(stats.stations===0){showOverlay("Primo avvio: scaricamento dati MIMIT (1–2 min)…");await fetch(API_BASE+"/refresh",{method:"POST"});}await Promise.all([loadFilters(),loadStats()]);}catch(e){console.error("Boot error:",e);document.getElementById("updateBadge").textContent="⚠ Server non raggiungibile";}hideOverlay();}
+async function loadStats(){try{const s=await apiFetch("/stats");const badge=document.getElementById("updateBadge");if(s.last_update){const d=new Date(s.last_update);badge.textContent=`${s.stations.toLocaleString("it")} impianti · aggiornato ${d.toLocaleDateString("it-IT")} ${d.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}`;}else{badge.textContent="Dati non ancora disponibili";}}catch(_){}}
+async function loadFilters(){const data=await apiFetch("/filters");populate("sProvincia",data.provinces,v=>v);populate("sCarburante",data.fuel_types,v=>v);populate("sBrand",data.brands,v=>v);const dl=document.getElementById("dlComune");data.municipalities.slice(0,800).forEach(m=>{const o=document.createElement("option");o.value=m;dl.appendChild(o);});}
+function populate(selectId,items,label){const sel=document.getElementById(selectId);items.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=label(v);sel.appendChild(o);});}
+async function search(){const btn=document.getElementById("btnSearch");btn.disabled=true;btn.textContent="⏳ Ricerca…";try{const params={comune:document.getElementById("iComune").value.trim(),provincia:document.getElementById("sProvincia").value,bandiera:document.getElementById("sBrand").value,carburante:document.getElementById("sCarburante").value,self_service:document.getElementById("sServizio").value,limit:300};const lat=document.getElementById("iLat").value.trim();const lon=document.getElementById("iLon").value.trim();if(lat&&lon){params.lat=lat;params.lon=lon;params.radius=document.getElementById("iRadius").value;}const data=await apiFetch("/stations",params);results=data.results||[];renderResults(results);renderMarkers(results);document.getElementById("resultsBar").textContent=`${results.length} risultati · ordinati per prezzo crescente`;}catch(e){document.getElementById("resultsBar").textContent="⚠ Errore nella ricerca";console.error(e);}finally{btn.disabled=false;btn.textContent="🔍 Cerca distributori";}}
+function renderResults(list){const el=document.getElementById("resultsList");if(!list.length){el.innerHTML='<div class="state-box"><div class="icon">🔍</div><p>Nessun distributore trovato.</p></div>';return;}const prices=list.map(r=>r.prezzo);const minP=Math.min(...prices);const maxP=Math.max(...prices);const midP=(minP+maxP)/2;el.innerHTML=list.map((r,i)=>{const priceClass=r.prezzo<=minP*1.01?"tag-cheap":r.prezzo>=maxP*0.99?"highest":"";const cardPriceClass=r.prezzo<midP?"":r.prezzo>=maxP*0.99?"highest":"high";return`<div class="card" data-i="${i}" onclick="focusStation(${i})"><div class="card-top"><span class="card-brand">${esc(r.bandiera||"N/D")}</span><span class="card-price ${cardPriceClass}">€ ${r.prezzo.toFixed(3)}</span></div><div class="card-addr">${esc(r.nome_impianto||"")}${r.nome_impianto?" · ":""}${esc(r.indirizzo||"")}<br>${esc(r.comune||"")} (${esc(r.provincia||"")})</div><div class="tags"><span class="tag tag-fuel">${esc(r.carburante)}</span><span class="tag ${r.is_self?"tag-self":"tag-serv"}">${r.is_self?"Self-Service":"Servito"}</span>${r.distanza_km!=null?`<span class="tag tag-km">${r.distanza_km} km</span>`:""} ${priceClass==="tag-cheap"?'<span class="tag tag-cheap">💚 Più economico</span>':""}</div><button class="btn-nav" onclick="event.stopPropagation();navigateTo(${r.latitudine},${r.longitudine})">↗ Naviga</button></div>`;}).join("");}
+function renderMarkers(list){cluster.clearLayers();list.forEach((r,i)=>{if(!r.latitudine||!r.longitudine)return;const m=L.marker([r.latitudine,r.longitudine]);m._si=i;m.bindPopup(`<div style="min-width:190px;font-family:Inter,sans-serif"><strong style="font-size:.95rem">${esc(r.bandiera||"N/D")}</strong><br><span style="font-size:1.15rem;font-weight:700;color:#16a34a">€ ${r.prezzo.toFixed(3)}</span> <span style="font-size:.8rem;color:#666">${esc(r.carburante)}</span><br><span style="font-size:.8rem">${esc(r.indirizzo||"")} — ${esc(r.comune||"")} (${esc(r.provincia||"")})</span><br><span style="font-size:.78rem;color:#888">${r.is_self?"Self-Service":"Servito"}</span>${r.distanza_km!=null?`<br><span style="font-size:.78rem">📍 ${r.distanza_km} km</span>`:""}<br><a href="https://www.google.com/maps/dir/?api=1&destination=${r.latitudine},${r.longitudine}" target="_blank" rel="noopener" style="display:inline-block;margin-top:7px;padding:5px 12px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-size:.82rem;font-weight:500">↗ Google Maps</a></div>`);cluster.addLayer(m);});if(list.length){const b=cluster.getBounds();if(b.isValid())map.fitBounds(b,{padding:[30,30],maxZoom:14});}}
+window.focusStation=function(i){const r=results[i];if(!r?.latitudine)return;document.querySelectorAll(".card").forEach(c=>c.classList.remove("active"));const card=document.querySelector(`.card[data-i="${i}"]`);if(card){card.classList.add("active");card.scrollIntoView({behavior:"smooth",block:"nearest"});}map.setView([r.latitudine,r.longitudine],15);cluster.eachLayer(l=>{if(l._si===i)l.openPopup();});};
+window.navigateTo=function(lat,lon){const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);if(isIOS){window.open(`maps://maps.apple.com/?daddr=${lat},${lon}&dirflg=d`,"_blank");}else{window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`,"_blank");}};
+function geolocate(){if(!navigator.geolocation){alert("Geolocalizzazione non supportata.");return;}const btn=document.getElementById("btnGps");btn.textContent="…";btn.disabled=true;navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude.toFixed(6);const lon=pos.coords.longitude.toFixed(6);document.getElementById("iLat").value=lat;document.getElementById("iLon").value=lon;if(userMarker)map.removeLayer(userMarker);userMarker=L.circleMarker([lat,lon],{radius:9,color:"#16a34a",fillColor:"#4ade80",fillOpacity:.85,weight:2}).addTo(map).bindPopup("La tua posizione").openPopup();map.setView([lat,lon],12);btn.textContent="📍";btn.disabled=false;},err=>{alert("Posizione non disponibile: "+err.message);btn.textContent="📍";btn.disabled=false;},{enableHighAccuracy:true,timeout:10000});}
+async function refreshData(){const btn=document.getElementById("btnRefresh");btn.disabled=true;btn.textContent="⏳";showOverlay("Aggiornamento dati dal MIMIT…");try{const r=await fetch(API_BASE+"/refresh",{method:"POST"});const d=await r.json();if(d.error)throw new Error(d.error);await loadFilters();await loadStats();alert(`✅ Aggiornati ${d.stations_loaded.toLocaleString("it")} impianti e ${d.prices_loaded.toLocaleString("it")} prezzi.`);}catch(e){alert("⚠ Errore: "+e.message);}finally{btn.disabled=false;btn.textContent="⟳ Aggiorna";hideOverlay();}}
+function showOverlay(t){document.getElementById("overlayText").textContent=t;document.getElementById("overlay").classList.remove("hidden");}
+function hideOverlay(){document.getElementById("overlay").classList.add("hidden");}
+function esc(s){if(!s)return"";const d=document.createElement("div");d.textContent=s;return d.innerHTML;}
+document.getElementById("btnSearch").addEventListener("click",search);
+document.getElementById("btnGps").addEventListener("click",geolocate);
+document.getElementById("btnRefresh").addEventListener("click",refreshData);
+document.getElementById("iComune").addEventListener("keydown",e=>{if(e.key==="Enter")search();});
+initMap();boot();
+})();
+</script>
+</body>
+</html>
