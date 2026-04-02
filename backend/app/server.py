@@ -1,5 +1,5 @@
 """FairFuel — Tornado server."""
-import os, logging
+import asyncio, os, logging
 import tornado.web, tornado.ioloop
 from app.config import PORT, HOST
 from app.database import init_db, get_stats
@@ -18,7 +18,9 @@ def make_app():
         (r"/api/refresh", RefreshHandler),
         (r"/api/health", HealthHandler),
         (r"/.*", IndexHandler),
-    ], static_path=FRONTEND_DIR if os.path.isdir(FRONTEND_DIR) else None, static_url_prefix="/static/",
+    ],
+    static_path=FRONTEND_DIR if os.path.isdir(FRONTEND_DIR) else None,
+    static_url_prefix="/static/",
     debug=os.environ.get("DEBUG","false").lower()=="true")
 
 async def _bootstrap():
@@ -27,7 +29,8 @@ async def _bootstrap():
     if stats["stations"] == 0:
         logger.info("Empty DB — loading MIMIT data...")
         try:
-            result = refresh_data()
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(None, refresh_data)
             logger.info(f"Loaded {result['stations_loaded']} stations")
         except Exception as e:
             logger.error(f"Initial load failed: {e}")
