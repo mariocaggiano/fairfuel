@@ -1,7 +1,7 @@
 """Tornado request handlers for FairFuel API."""
 import asyncio, json, logging, os
 import tornado.web
-from app.database import get_connection, get_stats
+from app.database import get_connection, get_stats, get_user_reports, get_station_coords, save_user_report
 from app.ingestion import refresh_data
 from app.config import CORS_ORIGINS
 
@@ -10,6 +10,20 @@ logger = logging.getLogger(__name__)
 FRONTEND_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend"
 )
+
+import math as _math
+
+def _haversine_py(lat1, lon1, lat2, lon2):
+    """Pure-Python haversine distance in km."""
+    try:
+        R = 6371.0
+        dlat = _math.radians(lat2 - lat1)
+        dlon = _math.radians(lon2 - lon1)
+        a = _math.sin(dlat/2)**2 + _math.cos(_math.radians(lat1)) * _math.cos(_math.radians(lat2)) * _math.sin(dlon/2)**2
+        return R * 2 * _math.asin(_math.sqrt(a))
+    except Exception:
+        return 99999.0
+
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -118,7 +132,12 @@ class StationsHandler(BaseHandler):
                     pass
                 results.append(item)
 
-            self.write_json({"count": len(results), "results": results})
+            # Attach community prices from Turso
+        ids = [r["id_impianto"] for r in results]
+        community = get_user_reports(ids)
+        for r in results:
+            r["community_prices"] = community.get(r["id_impianto"], [])
+        self.write_json({"count": len(results), "results": results})
         except Exception as e:
             logger.exception("StationsHandler error")
             self.write_json({"error": str(e)}, 500)
@@ -194,3 +213,44 @@ class IndexHandler(tornado.web.RequestHandler):
         else:
             self.set_status(404)
             self.write("Frontend not found")
+
+
+class ReportPriceHandler(BaseHandler):
+    """Receives a community price report; validates distance ≤ 200m from station."""
+
+    async def post(self):
+        try:
+            data = json.loads(self.request.body)
+            id_impianto    = int(data["id_impianto"])
+            user_lat       = float(data["lat"])
+            user_lon       = float(data["lon"])
+            descr_carb     = str(data["descr_carburante"]).strip()
+            is_self        = bool(data.get("is_self", False))
+            prezzo         = float(data["prezzo"])
+
+            if prezzo <= 0 or prezzo > 10:
+                self.write_json({"error": "Prezzo non valido"}, 400)
+                return
+
+            # Validate distance from station
+            coords = get_station_coords(id_impianto)
+            if not coords:
+                self.write_json({"error": "Impianto non trovato"}, 404)
+                return
+
+            dist_km = _haversine_py(user_lat, user_lon, coords["lat"], coords["lon"])
+            if dist_km > 0.2:
+                self.write_json({
+                    "error": f"Troppo lontano dal distributore ({dist_km*1000:.0f} m). Devi essere entro 200 m."
+                }, 403)
+                return
+
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, save_user_report, id_impianto, descr_carb, is_self, prezzo)
+            self.write_json({"status": "ok"})
+
+        except (KeyError, ValueError) as e:
+            self.write_json({"error": f"Parametri non validi: {e}"}, 400)
+        except Exception as e:
+            logger.error(f"ReportPriceHandler error: {e}")
+            self.write_json({"error": str(e)}, 500)
