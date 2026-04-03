@@ -26,3 +26,7 @@ SCHEDULER_HOUR = int(os.environ.get("SCHEDULER_HOUR", "9"))
 SCHEDULER_MINUTE = int(os.environ.get("SCHEDULER_MINUTE", "15"))
 
 os.makedirs(DATA_DIR, exist_ok=True)
+
+
+TURSO_URL = os.environ.get("TURSO_URL", "")
+TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "")
