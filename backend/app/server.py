@@ -2,10 +2,10 @@
 import asyncio, os, logging
 import tornado.web, tornado.ioloop
 from app.config import PORT, HOST
-from app.database import init_db, get_stats
+from app.database import init_db, get_stats, init_turso_db
 from app.ingestion import refresh_data
 from app.scheduler import start_scheduler
-from app.handlers import StationsHandler, FiltersHandler, StatsHandler, RefreshHandler, HealthHandler, IndexHandler, FRONTEND_DIR
+from app.handlers import StationsHandler, FiltersHandler, StatsHandler, RefreshHandler, HealthHandler, IndexHandler, ReportPriceHandler, FRONTEND_DIR
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -15,6 +15,7 @@ def make_app():
         (r"/api/stations", StationsHandler),
         (r"/api/filters", FiltersHandler),
         (r"/api/stats", StatsHandler),
+        (r"/api/report-price", ReportPriceHandler),
         (r"/api/refresh", RefreshHandler),
         (r"/api/health", HealthHandler),
         (r"/.*", IndexHandler),
@@ -25,6 +26,7 @@ def make_app():
 
 async def _bootstrap():
     init_db()
+    init_turso_db()
     stats = get_stats()
     if stats["stations"] == 0:
         logger.info("Empty DB — loading MIMIT data...")
