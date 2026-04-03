@@ -133,11 +133,11 @@ class StationsHandler(BaseHandler):
                 results.append(item)
 
             # Attach community prices from Turso
-        ids = [r["id_impianto"] for r in results]
-        community = get_user_reports(ids)
-        for r in results:
-            r["community_prices"] = community.get(r["id_impianto"], [])
-        self.write_json({"count": len(results), "results": results})
+            ids = [r["id_impianto"] for r in results]
+            community = get_user_reports(ids)
+            for r in results:
+                r["community_prices"] = community.get(r["id_impianto"], [])
+            self.write_json({"count": len(results), "results": results})
         except Exception as e:
             logger.exception("StationsHandler error")
             self.write_json({"error": str(e)}, 500)
