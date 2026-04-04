@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>FairFuel — Prezzi Carburanti Italia</title>
 <meta name="description" content="Trova il distributore di carburante più economico vicino a te. Dati aggiornati dal MIMIT ogni giorno." />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#16a34a" />
+<link rel="apple-touch-icon" href="icon-192.png" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
@@ -19,10 +22,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .logo svg{width:28px;height:28px}
 .logo h1{font-size:1.3rem;font-weight:700;letter-spacing:-.5px}
 .header-right{display:flex;align-items:center;gap:10px}
-#updateBadge{font-size:.78rem;opacity:.85;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+#updateBadge{font-size:.78rem;opacity:.85;white-space:nowraw;max-width:240px;overflow:hidden;text-overflow:ellipsis}
 .btn-icon{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:500;transition:background .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
 .btn-icon:hover{background:rgba(255,255,255,.32)}
 .btn-icon:disabled{opacity:.5;cursor:wait}
+.btn-bell{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:500;transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-bell:hover{background:rgba(255,255,255,.32)}
+.btn-bell.has-alert{background:rgba(255,213,0,.3);border-color:rgba(255,213,0,.6)}
 .layout{display:grid;grid-template-columns:370px 1fr;height:calc(100dvh - 56px)}
 .sidebar{background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .filters{padding:14px 16px;border-bottom:1px solid var(--border);overflow-y:auto;flex-shrink:0}
@@ -43,6 +49,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .btn-search{width:100%;padding:9px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:.95rem;font-weight:600;cursor:pointer;transition:background .2s;margin-top:2px}
 .btn-search:hover{background:var(--primary-dark)}
 .btn-search:disabled{opacity:.6;cursor:wait}
+/* tank slider row */
+.tank-row{display:flex;align-items:center;gap:8px;padding:7px 16px;background:#f0fdf4;border-bottom:1px solid #d1fae5;font-size:.8rem;color:#15803d;font-weight:500;flex-shrink:0}
+.tank-row input[type=range]{flex:1;accent-color:var(--primary);max-width:110px}
+.tank-val{font-weight:700;color:var(--primary);min-width:26px}
+/* saving banner */
+.saving-bar{display:none;align-items:center;gap:6px;padding:7px 16px;background:linear-gradient(90deg,#f0fdf4,#dcfce7);border-bottom:1px solid #86efac;font-size:.82rem;color:#166534;font-weight:500;flex-shrink:0}
+.saving-bar strong{font-size:.95rem;color:var(--primary)}
 .results-bar{padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:.8rem;color:var(--text-light);font-weight:500;flex-shrink:0}
 .results-list{flex:1;overflow-y:auto}
 .card{padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
@@ -83,10 +96,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .spinner{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .75s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .overlay-text{color:var(--text-light);font-size:.9rem}
+/* alert panel */
+.alert-panel{position:fixed;top:56px;right:16px;width:300px;background:#fff;border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);box-shadow:var(--shadow-lg);z-index:800;padding:16px;display:none}
+.alert-panel.open{display:block}
+.alert-panel h3{font-size:.9rem;font-weight:600;margin-bottom:12px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.toggle-row span{font-size:.85rem;font-weight:500}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:#cbd5e1;border-radius:24px;cursor:pointer;transition:.3s}
+.toggle-slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:var(--primary)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
+.alert-fg{margin-bottom:10px;display:flex;flex-direction:column;gap:4px}
+.alert-fg label{font-size:.76rem;font-weight:500;color:var(--text-light)}
+.alert-fg input,.alert-fg select{padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-size:.88rem;font-family:inherit;background:var(--bg)}
+.alert-fg input:focus,.alert-fg select:focus{outline:none;border-color:var(--primary)}
+.alert-hint{font-size:.73rem;color:var(--text-light);margin-top:2px;line-height:1.4}
+.alert-status{font-size:.75rem;color:var(--text-light);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.alert-status.active{color:var(--primary);font-weight:500}
 @media(max-width:720px){.layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}.sidebar{max-height:55dvh}#map{min-height:45dvh}#updateBadge{display:none}}
 </style>
 </head>
 <body>
+
 <header class="header">
   <div class="logo">
     <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -102,10 +135,38 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
   </div>
   <div class="header-right">
     <span id="updateBadge">Caricamento…</span>
+    <button class="btn-bell" id="btnBell" title="Imposta alert prezzo">🔔 Alert</button>
     <button class="btn-icon" id="btnRefresh">⟳ Aggiorna</button>
   </div>
 </header>
-<div class="overlay" id="overlay"><div class="spinner"></div><div class="overlay-text" id="overlayText">Caricamento dati…</div></div>
+
+<!-- Alert panel (feature 4) -->
+<div class="alert-panel" id="alertPanel">
+  <h3>🔔 Alert prezzo carburante</h3>
+  <div class="toggle-row">
+    <span>Attiva notifiche</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="alertEnabled" />
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div class="alert-fg">
+    <label>Carburante da monitorare</label>
+    <select id="alertFuel"><option value="">Qualsiasi</option></select>
+  </div>
+  <div class="alert-fg">
+    <label>Notificami se il prezzo scende sotto (€/L)</label>
+    <input type="number" id="alertThreshold" step="0.01" min="0.5" max="5" placeholder="es. 1.70" />
+    <div class="alert-hint">La notifica scatta alla prossima ricerca se un distributore supera la soglia.</div>
+  </div>
+  <div class="alert-status" id="alertStatus">Alert disattivato</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <div class="overlay-text" id="overlayText">Caricamento dati…</div>
+</div>
+
 <div class="layout">
   <aside class="sidebar">
     <div class="filters">
@@ -134,6 +195,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
       <div class="fg" style="margin-bottom:10px"><label>Brand / Bandiera</label><select id="sBrand"><option value="">Tutti</option></select></div>
       <button class="btn-search" id="btnSearch">🔍 Cerca distributori</button>
     </div>
+
+    <!-- Feature 7: tank slider -->
+    <div class="tank-row">
+      <span>⛽ Pieno:</span>
+      <input type="range" id="iTank" min="20" max="100" value="50" step="5" oninput="onTankChange(this.value)">
+      <span class="tank-val" id="tankVal">50L</span>
+      <span style="font-size:.73rem;color:var(--text-light);margin-left:2px">· per calcolo risparmio</span>
+    </div>
+
+    <!-- Feature 7: saving banner -->
+    <div class="saving-bar" id="savingBar">
+      💰 Col distributore più economico risparmi <strong id="savingAmt"></strong> rispetto alla media
+    </div>
+
     <div class="results-bar" id="resultsBar">Imposta i filtri e premi Cerca</div>
     <div class="results-list" id="resultsList">
       <div class="state-box"><div class="icon">⛽</div><p>Seleziona i filtri e premi <strong>Cerca</strong> per trovare i distributori più economici.</p></div>
@@ -141,6 +216,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
   </aside>
   <div id="map"></div>
 </div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
@@ -148,6 +224,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
   "use strict";
   const API_BASE=(typeof __API_BASE__!=="undefined"?__API_BASE__:window.FAIRFUEL_API_BASE||(window.location.hostname==="localhost"?"http://localhost:8000":"https://fairfuel-api.onrender.com"))+"/api";
   let map,cluster,userMarker,results=[];
+
+  /* ── localStorage keys ── */
+  const LS_FILTERS='ff_filters', LS_TANK='ff_tank', LS_ALERT='ff_alert';
 
   /* ── helpers ── */
   function fmtDt(s){
@@ -208,6 +287,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
       document.getElementById('updateBadge').textContent='⚠ Server non raggiungibile';
     }
     hideOverlay();
+    restoreTank();
   }
 
   async function loadStats(){
@@ -226,13 +306,158 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
     populate('sProvincia',data.provinces,v=>v);
     populate('sCarburante',data.fuel_types,v=>v);
     populate('sBrand',data.brands,v=>v);
+    // populate alert fuel selector with same list
+    populate('alertFuel',data.fuel_types,v=>v);
     const dl=document.getElementById('dlComune');
     data.municipalities.slice(0,800).forEach(m=>{const o=document.createElement('option');o.value=m;dl.appendChild(o);});
+    // Feature 1: restore saved filters after options are populated
+    restoreFilters();
+    // Feature 4: restore alert settings
+    loadAlertSettings();
   }
 
   function populate(selectId,items,label){
     const sel=document.getElementById(selectId);
     items.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=label(v);sel.appendChild(o);});
+  }
+
+  /* ══════════════════════════════════
+     FEATURE 1 — localStorage filters
+  ══════════════════════════════════ */
+  function saveFilters(){
+    try{
+      localStorage.setItem(LS_FILTERS,JSON.stringify({
+        carburante:document.getElementById('sCarburante').value,
+        servizio:document.getElementById('sServizio').value,
+        brand:document.getElementById('sBrand').value,
+        provincia:document.getElementById('sProvincia').value,
+        radius:document.getElementById('iRadius').value,
+        comune:document.getElementById('iComune').value,
+        lat:document.getElementById('iLat').value,
+        lon:document.getElementById('iLon').value
+      }));
+    }catch(e){}
+  }
+
+  function restoreFilters(){
+    try{
+      const s=JSON.parse(localStorage.getItem(LS_FILTERS)||'{}');
+      const set=(id,v)=>{if(v!=null&&v!==''){const el=document.getElementById(id);if(el)el.value=v;}};
+      set('sCarburante',s.carburante);
+      set('sServizio',s.servizio);
+      set('sBrand',s.brand);
+      set('sProvincia',s.provincia);
+      set('iComune',s.comune);
+      set('iLat',s.lat);
+      set('iLon',s.lon);
+      if(s.radius){
+        document.getElementById('iRadius').value=s.radius;
+        document.getElementById('rVal').textContent=s.radius+' km';
+      }
+    }catch(e){}
+  }
+
+  /* ══════════════════════════════════
+     FEATURE 7 — savings + tank slider
+  ══════════════════════════════════ */
+  window.onTankChange=function(val){
+    document.getElementById('tankVal').textContent=val+'L';
+    try{localStorage.setItem(LS_TANK,val);}catch(e){}
+    updateSavingBar(results);
+  };
+
+  function restoreTank(){
+    try{
+      const v=localStorage.getItem(LS_TANK);
+      if(v){
+        document.getElementById('iTank').value=v;
+        document.getElementById('tankVal').textContent=v+'L';
+      }
+    }catch(e){}
+  }
+
+  function updateSavingBar(list){
+    const bar=document.getElementById('savingBar');
+    if(!list||!list.length){bar.style.display='none';return;}
+    const prices=list.map(r=>r.prezzo);
+    const minP=Math.min(...prices);
+    const avgP=prices.reduce((a,b)=>a+b,0)/prices.length;
+    const tankL=parseInt(document.getElementById('iTank').value)||50;
+    const saving=(avgP-minP)*tankL;
+    if(saving>0.01){
+      document.getElementById('savingAmt').textContent=`€ ${saving.toFixed(2)} (pieno da ${tankL}L)`;
+      bar.style.display='flex';
+    }else{
+      bar.style.display='none';
+    }
+  }
+
+  /* ══════════════════════════════════
+     FEATURE 4 — price alert + PWA
+  ══════════════════════════════════ */
+  function loadAlertSettings(){
+    try{
+      const s=JSON.parse(localStorage.getItem(LS_ALERT)||'{}');
+      if(s.enabled)document.getElementById('alertEnabled').checked=true;
+      if(s.fuel)document.getElementById('alertFuel').value=s.fuel;
+      if(s.threshold)document.getElementById('alertThreshold').value=s.threshold;
+    }catch(e){}
+    updateAlertUI();
+  }
+
+  function saveAlertSettings(){
+    try{
+      localStorage.setItem(LS_ALERT,JSON.stringify({
+        enabled:document.getElementById('alertEnabled').checked,
+        fuel:document.getElementById('alertFuel').value,
+        threshold:parseFloat(document.getElementById('alertThreshold').value)||null
+      }));
+    }catch(e){}
+    updateAlertUI();
+  }
+
+  function updateAlertUI(){
+    const btn=document.getElementById('btnBell');
+    const status=document.getElementById('alertStatus');
+    try{
+      const s=JSON.parse(localStorage.getItem(LS_ALERT)||'{}');
+      if(s.enabled&&s.threshold){
+        btn.classList.add('has-alert');
+        btn.textContent='🔔 Alert attivo';
+        const fuel=s.fuel||'qualsiasi carburante';
+        status.textContent=`✅ Attivo: ${fuel} < €${Number(s.threshold).toFixed(2)}/L`;
+        status.className='alert-status active';
+      }else{
+        btn.classList.remove('has-alert');
+        btn.textContent='🔔 Alert';
+        status.textContent='Alert disattivato';
+        status.className='alert-status';
+      }
+    }catch(e){}
+  }
+
+  async function checkAlerts(list){
+    try{
+      const s=JSON.parse(localStorage.getItem(LS_ALERT)||'{}');
+      if(!s.enabled||!s.threshold)return;
+      let filtered=list;
+      if(s.fuel)filtered=list.filter(r=>r.carburante===s.fuel);
+      if(!filtered.length)return;
+      const minR=filtered.reduce((a,b)=>a.prezzo<b.prezzo?a:b);
+      if(minR.prezzo>=s.threshold)return;
+      // ask permission if needed
+      if(typeof Notification==='undefined')return;
+      if(Notification.permission==='default'){
+        const p=await Notification.requestPermission();
+        if(p!=='granted')return;
+      }
+      if(Notification.permission!=='granted')return;
+      new Notification('⛽ FairFuel — Prezzo sotto soglia!',{
+        body:`${minR.bandiera||''}: €${minR.prezzo.toFixed(3)}/L (${minR.carburante})\n${minR.indirizzo||''}, ${minR.comune||''}`,
+        icon:'/icon-192.png',
+        tag:'fairfuel-alert'
+      });
+    }catch(e){}
   }
 
   /* ── search ── */
@@ -256,6 +481,12 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
       renderResults(results);
       renderMarkers(results);
       document.getElementById('resultsBar').textContent=`${results.length} risultati · ordinati per prezzo crescente`;
+      // Feature 1: save filter state
+      saveFilters();
+      // Feature 7: show saving banner
+      updateSavingBar(results);
+      // Feature 4: check alerts
+      checkAlerts(results);
     }catch(e){
       document.getElementById('resultsBar').textContent='⚠ Errore nella ricerca';
       console.error(e);
@@ -446,9 +677,32 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
   /* ── events ── */
   document.getElementById('btnSearch').addEventListener('click',search);
   document.getElementById('btnGps').addEventListener('click',geolocate);
-  document.getElementById('btnRefresh').addEventListener('click'refreshData);
+  document.getElementById('btnRefresh').addEventListener('click',refreshData);
   document.getElementById('iComune').addEventListener('keydown',e=>{if(e.key==='Enter')search();});
+
+  // Feature 4: bell toggle
+  document.getElementById('btnBell').addEventListener('click',e=>{
+    e.stopPropagation();
+    document.getElementById('alertPanel').classList.toggle('open');
+  });
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('#alertPanel')&&!e.target.closest('#btnBell')){
+      document.getElementById('alertPanel').classList.remove('open');
+    }
+  });
+  document.getElementById('alertEnabled').addEventListener('change',saveAlertSettings);
+  document.getElementById('alertFuel').addEventListener('change',saveAlertSettings);
+  document.getElementById('alertThreshold').addEventListener('input',saveAlertSettings);
+
+  // keep server warm
   setInterval(()=>{fetch(API_BASE+'/health').catch(()=>{})},8*60*1000);
+
+  // Feature 4: register service worker for PWA
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    });
+  }
 
   initMap();boot();
 })();
