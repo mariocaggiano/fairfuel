@@ -1,8 +1,16 @@
 {
   "version": 2,
   "name": "fairfuel",
-  "builds": [{"src": "index.html", "use": "@vercel/static"}],
-  "routes": [{"src": "/(.*)", "dest": "/index.html"}],
+  "builds": [
+    {"src": "index.html", "use": "@vercel/static"},
+    {"src": "sw.js", "use": "@vercel/static"},
+    {"src": "manifest.json", "use": "@vercel/static"}
+  ],
+  "routes": [
+    {"src": "/sw.js", "dest": "/sw.js"},
+    {"src": "/manifest.json", "dest": "/manifest.json"},
+    {"src": "/(.*)", "dest": "/index.html"}
+  ],
   "headers": [{
     "source": "/(.*)",
     "headers": [
